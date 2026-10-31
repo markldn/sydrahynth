@@ -5,10 +5,10 @@ repo_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 if [ -n "${SYDRAHYNTH_APP:-}" ]; then
     app_bundle=$SYDRAHYNTH_APP
-elif [ -d "$repo_root/build/Sydrahynth_artefacts/RelWithDebInfo/Standalone/Sydrahynth.app" ]; then
-    app_bundle="$repo_root/build/Sydrahynth_artefacts/RelWithDebInfo/Standalone/Sydrahynth.app"
 elif [ -d "$repo_root/build-release/Sydrahynth_artefacts/Release/Standalone/Sydrahynth.app" ]; then
     app_bundle="$repo_root/build-release/Sydrahynth_artefacts/Release/Standalone/Sydrahynth.app"
+elif [ -d "$repo_root/build/Sydrahynth_artefacts/RelWithDebInfo/Standalone/Sydrahynth.app" ]; then
+    app_bundle="$repo_root/build/Sydrahynth_artefacts/RelWithDebInfo/Standalone/Sydrahynth.app"
 else
     echo "Sydrahynth standalone app not found. Build it first with: cmake --build build" >&2
     exit 1

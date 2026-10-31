@@ -9,6 +9,7 @@
 namespace hydra::dsp {
 
 class DspJit;
+class DspJitArm64;
 
 // The custom DSP used both for the 8 main DSP cores and for the two effects DSPs.
 //
@@ -89,8 +90,8 @@ public:
     // accounted for. An idle loop (a backward branch that changes nothing)
     // consumes the rest of the budget at once.
     std::uint64_t run(std::uint64_t instructions);
-    // Compiles the program to x86-64 (see dsp_jit.h) instead of interpreting it;
-    // the default for new cores comes from HYDRA_DSP_JIT (1 unless set to 0).
+    // Compiles DSP programs on supported hosts instead of interpreting them.
+    // Use HYDRA_DSP_JIT to override the host's default during development.
     void setJit(bool enabled);
     static bool jitByDefault();
     void raiseInterrupt(int line) { pending_ |= 1u << line; }
@@ -119,6 +120,7 @@ private:
     };
 
     friend class DspJit;
+    friend class DspJitArm64;
     friend struct JitThunks;
 
     // The interpreter: runs up to `limit` instructions of a run() with `budget`
@@ -156,6 +158,9 @@ private:
 
 #if defined(__x86_64__)
     std::unique_ptr<DspJit> jit_;
+#endif
+#if defined(__aarch64__) || defined(__arm64__)
+    std::unique_ptr<DspJitArm64> arm64Jit_;
 #endif
 };
 

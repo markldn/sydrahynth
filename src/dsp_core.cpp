@@ -7,6 +7,8 @@
 
 #if defined(__x86_64__)
 #include "dsp_jit.h"
+#elif defined(__aarch64__) || defined(__arm64__)
+#include "dsp_jit_arm64.h"
 #endif
 
 namespace hydra::dsp {
@@ -241,6 +243,14 @@ bool DspCore::jitByDefault() {
         return !setting || std::string_view(setting) != "0";
     }();
     return enabled;
+#elif defined(__aarch64__) || defined(__arm64__)
+    // Native ARM64 DSP code generation is the default; set HYDRA_DSP_JIT=0 to
+    // fall back to the interpreter if a host has trouble with executable JIT pages.
+    static const bool enabled = [] {
+        const char* setting = std::getenv("HYDRA_DSP_JIT");
+        return !setting || std::string_view(setting) != "0";
+    }();
+    return enabled;
 #else
     return false;
 #endif
@@ -252,6 +262,11 @@ void DspCore::setJit(bool enabled) {
         jit_ = std::make_unique<DspJit>(*this);
     else if (!enabled)
         jit_.reset();
+#elif defined(__aarch64__) || defined(__arm64__)
+    if (enabled && !arm64Jit_)
+        arm64Jit_ = std::make_unique<DspJitArm64>(*this);
+    else if (!enabled)
+        arm64Jit_.reset();
 #else
     (void)enabled;
 #endif
@@ -262,6 +277,9 @@ void DspCore::invalidate(std::uint32_t pc) {
 #if defined(__x86_64__)
     if (jit_)
         jit_->invalidate();
+#elif defined(__aarch64__) || defined(__arm64__)
+    if (arm64Jit_)
+        arm64Jit_->invalidate();
 #endif
 }
 
@@ -364,6 +382,9 @@ std::uint64_t DspCore::run(std::uint64_t budget) {
 #if defined(__x86_64__)
     if (jit_)
         return jit_->run(budget);
+#elif defined(__aarch64__) || defined(__arm64__)
+    if (arm64Jit_)
+        return arm64Jit_->run(budget);
 #endif
     return interpret(budget, budget);
 }

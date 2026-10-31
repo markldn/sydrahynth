@@ -119,7 +119,13 @@ int HydraProcessor::latencyChoice() const {
     if (const char* forced = std::getenv("HYDRA_LATENCY"))  // for tests: 0-3
         return juce::jlimit(0, static_cast<int>(kLatencyFrames.size()) - 1, std::atoi(forced));
     auto& self = const_cast<HydraProcessor&>(*this);
-    return juce::jlimit(0, static_cast<int>(kLatencyFrames.size()) - 1, self.settings_.getUserSettings()->getIntValue("latency", 1));
+#if defined(__aarch64__) || defined(__arm64__)
+    constexpr int defaultLatencyChoice = 3;  // ARM64 DSP JIT: 2048 frames prevents measured callback underruns.
+#else
+    constexpr int defaultLatencyChoice = 1;
+#endif
+    return juce::jlimit(0, static_cast<int>(kLatencyFrames.size()) - 1,
+                        self.settings_.getUserSettings()->getIntValue("latency", defaultLatencyChoice));
 }
 
 bool HydraProcessor::browserVisible() const {

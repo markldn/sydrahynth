@@ -46,8 +46,13 @@ add_library(hydra_core STATIC
 )
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
     target_sources(hydra_core PRIVATE src/dsp_jit.cpp)
+elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|ARM64)$")
+    target_sources(hydra_core PRIVATE src/dsp_jit_arm64.cpp)
 endif()
 target_include_directories(hydra_core PUBLIC src)
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|ARM64)$")
+    target_include_directories(hydra_core SYSTEM PRIVATE external/dynarmic/externals/oaknut/include)
+endif()
 target_include_directories(hydra_core SYSTEM PUBLIC ${Boost_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 target_link_libraries(hydra_core PUBLIC dynarmic merry::mcl)
 # Dynarmic only creates this target for x86-64 hosts. The DSP JIT and the

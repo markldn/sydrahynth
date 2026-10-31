@@ -16,8 +16,10 @@ On macOS, install the build tools and Boost headers first:
 
     brew install cmake ninja boost
 
-Then fetch dependencies and build as below. Apple Silicon builds use the DSP
-interpreter; the x86-64 DSP JIT remains enabled on supported x86-64 hosts.
+Then fetch dependencies and build as below. x86-64 and Apple Silicon builds use
+their native DSP JITs by default. Set `HYDRA_DSP_JIT=0` to use the interpreter.
+On Apple Silicon the standalone starts with a 2048-frame latency target; lower
+latency choices are available in the plugin but may crackle under heavy load.
 
     scripts/fetch-deps.sh
     cmake -S . -B build -G Ninja
@@ -32,8 +34,9 @@ copying `VST3/Sydrahynth.vst3` to `~/.vst3/` and `LV2/Sydrahynth.lv2` to
 
 The default configuration is `RelWithDebInfo` (`-O2` with debug symbols, a
 standalone of over 200 MB). For everyday use, build `Release` (`-O3`, no
-debug symbols: 15 MB, about 7% faster, 6% less CPU at real-time pace) in a
-directory of its own:
+debug symbols: 15 MB; on this M1 it improved the native DSP path enough to
+eliminate underruns in the 2048-frame paced firmware test) in a directory of
+its own:
 
     cmake -S . -B build-release -G Ninja -DCMAKE_BUILD_TYPE=Release
     cmake --build build-release
@@ -145,9 +148,10 @@ frames every iteration, runs at a hardware-like pace rather than as fast as the
 host allows, the panel MCU sleeping while it polls a DMA flag or SysTick and
 stopping exactly when it has read a byte from the main CPU (instead of running
 in 50-cycle steps), the panel lagging up to 50 us between interactions so that
-it runs in longer stretches, the DSP cores compiled to x86-64
-(`src/dsp_jit.*`, bit-exact with the interpreter; `HYDRA_DSP_JIT=0` switches it
-off) and run in parallel, and the DSP side overlapped with the CPU.
+it runs in longer stretches, the DSP cores compiled to host-native code
+(`src/dsp_jit.*` on x86-64 and `src/dsp_jit_arm64.*` on Apple Silicon; both are
+tested against the interpreter; `HYDRA_DSP_JIT=0` switches the JIT off) and run
+in parallel, and the DSP side overlapped with the CPU.
 The DSP cores sync every sample; rather than wait for a thread that has no
 CPU at the moment (more threads than free cores, as in a busy DAW), the others
 claim and run its DSP cores for that sample. So four threads are the fastest or
